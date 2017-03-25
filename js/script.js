@@ -1,84 +1,79 @@
-var propLeft = -169;
-var propRight = 80;
-var propBack = 196;
-var propFront = -53;
-var propHeight = 63;
-var droneMaterial = new THREE.MeshPhongMaterial( { color: 0x555555, specular: 0x111111, shininess: 200 } );
+var propDist = 125;
+var propHeight = 183.15;
+var droneMaterial = new THREE.MeshPhongMaterial( { color: 0x303030, specular: 0x111111, shininess: 200 } );
 
 var container, stats;
 
 var camera, controls, scene, renderer;
 var droneBodyGeom, dronePropRGeom, dronePropLGeom;
-var drone;
+var drones = [];
 
-function Drone(position, scale, scene) {
+function Drone(p, scale, scene) {
+    this.flying = true;
+    this.droneGroup = new THREE.Group();
+
     this.droneBody = new THREE.Mesh( droneBodyGeom, droneMaterial );
-
-    this.droneBody.position.set(position);
-    this.droneBody.rotation.set( 0, - Math.PI / 2, 0 );
+    this.droneBody.position.set(p.x, p.y, p.z);
     this.droneBody.scale.set(scale, scale, scale);
-
     this.droneBody.castShadow = true;
     this.droneBody.receiveShadow = true;
 
-    this.dronePropL1 = new THREE.Mesh( dronePropLGeom, droneMaterial );
-
-    this.dronePropL1.position.set(position.add(new THREE.Vector3(propLeft * scale, propHeight, propBack * scale)));
-    this.dronePropL1.rotation.set( 0, - Math.PI / 2, 0 );
-    this.dronePropL1.scale.set(scale, scale, scale);
-
-    this.dronePropL1.castShadow = true;
-    this.dronePropL1.receiveShadow = true;
-
-
-    this.dronePropL2 = new THREE.Mesh( dronePropLGeom, droneMaterial );
-
-    this.dronePropL2.position.set(position.add(new THREE.Vector3(propRight * scale, propHeight, propFront * scale)));
-    this.dronePropL2.rotation.set( 0, - Math.PI / 2, 0 );
-    this.dronePropL2.scale.set(scale, scale, scale);
-
-    this.dronePropL2.castShadow = true;
-    this.dronePropL2.receiveShadow = true;
-
-
     this.dronePropR1 = new THREE.Mesh( dronePropRGeom, droneMaterial );
-
-    this.dronePropR1.position.set(position.add(new THREE.Vector3(propLeft * scale, propHeight, propFront * scale)));
-    this.dronePropR1.rotation.set( 0, - Math.PI / 2, 0 );
+    this.dronePropR1.position.set(p.x - propDist * scale, p.y + propHeight * scale, p.z - propDist * scale);
     this.dronePropR1.scale.set(scale, scale, scale);
-
     this.dronePropR1.castShadow = true;
     this.dronePropR1.receiveShadow = true;
 
-
     this.dronePropR2 = new THREE.Mesh( dronePropRGeom, droneMaterial );
-
-    this.dronePropR2.position.set(position.add(new THREE.Vector3(propRight * scale, propHeight, propBack * scale)));
-    this.dronePropR2.rotation.set( 0, - Math.PI / 2, 0 );
+    this.dronePropR2.position.set(p.x + propDist * scale, p.y + propHeight * scale, p.z + propDist * scale);
     this.dronePropR2.scale.set(scale, scale, scale);
-
     this.dronePropR2.castShadow = true;
     this.dronePropR2.receiveShadow = true;
 
-    this.droneBody.add(this.dronePropR1, this.dronePropR2, this.dronePropL1, this.dronePropL2);
+    this.dronePropL1 = new THREE.Mesh( dronePropLGeom, droneMaterial );
+    this.dronePropL1.position.set(p.x - propDist * scale, p.y + propHeight * scale, p.z + propDist * scale);
+    this.dronePropL1.rotateY(Math.PI / 2);
+    this.dronePropL1.scale.set(scale, scale, scale);
+    this.dronePropL1.castShadow = true;
+    this.dronePropL1.receiveShadow = true;
 
-    scene.add(this.droneBody);
-    scene.add(this.dronePropR1);
-    scene.add(this.dronePropR2);
-    scene.add(this.dronePropL1);
-    scene.add(this.dronePropL2);
+    this.dronePropL2 = new THREE.Mesh( dronePropLGeom, droneMaterial );
+    this.dronePropL2.position.set(p.x + propDist * scale, p.y + propHeight * scale, p.z - propDist * scale);
+    this.dronePropL2.rotateY(Math.PI / 2);
+    this.dronePropL2.scale.set(scale, scale, scale);
+    this.dronePropL2.castShadow = true;
+    this.dronePropL2.receiveShadow = true;
+
+    this.droneGroup.add(this.droneBody, this.dronePropR1, this.dronePropR2, this.dronePropL1, this.dronePropL2);
+
+    scene.add(this.droneGroup);
 }
 
 init();
 animate();
 
 function init() {
+    // ASCII file
+
+    var loader = new THREE.STLLoader();
+    loader.load( 'models/DroneBody.stl', function ( geometry ) {
+        droneBodyGeom = geometry;
+
+        loader.load( 'models/DronePropL.stl', function ( geometry ) {
+            dronePropLGeom = geometry;
+
+            loader.load( 'models/DronePropR.stl', function ( geometry ) {
+                dronePropRGeom = geometry;
+                drones.push(new Drone(new THREE.Vector3(0, 0, 0), 0.01, scene));
+            } );
+        } );
+    } );
 
     container = document.createElement( 'div' );
     document.body.appendChild( container );
 
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 100 );
-    camera.position.set( 0, 2.5, 5 );
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 1000 );
+    camera.position.set( 0, 5, -5 );
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x6699ff);
@@ -97,28 +92,37 @@ function init() {
 
     plane.receiveShadow = true;
 
-    // ASCII file
+    // LIGHTS
 
-    var loader = new THREE.STLLoader();
-    loader.load( 'models/droneBody.stl', function ( geometry ) {
-        droneBodyGeom = geometry;
+    hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+    hemiLight.color.setHSL( 0.6, 1, 0.6 );
+    hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+    hemiLight.position.set( 0, 500, 0 );
+    scene.add( hemiLight );
 
-        loader.load( 'models/dronePropL.stl', function ( geometry ) {
-            dronePropLGeom = geometry;
+    //
 
-            loader.load( 'models/dronePropR.stl', function ( geometry ) {
-                dronePropRGeom = geometry;
+    dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight.color.setHSL( 0.1, 1, 0.95 );
+    dirLight.position.set( -1, 1.75, 1 );
+    dirLight.position.multiplyScalar( 50 );
+    scene.add( dirLight );
 
-                drone = new Drone(new THREE.Vector3(0, 1, 0), 0.01, scene);
-            } );
-        } );
-    } );
+    dirLight.castShadow = true;
 
-    // Lights
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
 
-    scene.add( new THREE.HemisphereLight( 0xffffff, 0x111122 ) );
+    var d = 50;
 
-    addShadowedLight( 10, 10, 10, 0x101010, 1.5 );
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+
+    dirLight.shadow.camera.far = 3500;
+    dirLight.shadow.bias = -0.0001;
+
     // renderer
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -147,32 +151,6 @@ function init() {
     container.appendChild( stats.dom );
 
     window.addEventListener( 'resize', onWindowResize, false );
-
-    // while (dronePropRGeom === undefined) {}
-}
-
-function addShadowedLight( x, y, z, color, intensity ) {
-
-    var directionalLight = new THREE.DirectionalLight( color, intensity );
-    directionalLight.position.set( x, y, z );
-    scene.add( directionalLight );
-
-    directionalLight.castShadow = true;
-
-    var d = 1;
-    directionalLight.shadow.camera.left = -d;
-    directionalLight.shadow.camera.right = d;
-    directionalLight.shadow.camera.top = d;
-    directionalLight.shadow.camera.bottom = -d;
-
-    directionalLight.shadow.camera.near = 1;
-    directionalLight.shadow.camera.far = 4;
-
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-
-    directionalLight.shadow.bias = -0.005;
-
 }
 
 function onWindowResize() {
@@ -189,6 +167,16 @@ function animate() {
     requestAnimationFrame( animate );
 
     controls.update();
+
+    for (var i = 0; i < drones.length; i++) {
+        if (drones[i].flying)
+        {
+            drones[i].dronePropR1.rotateY(-0.4);
+            drones[i].dronePropR2.rotateY(-0.4);
+            drones[i].dronePropL1.rotateY(0.4);
+            drones[i].dronePropL2.rotateY(0.4);
+        }
+    }
 
     render();
     stats.update();
